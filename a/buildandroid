@@ -1,0 +1,7 @@
+#!/bin/bash
+cd build/android
+make
+# select the first listed SDK, API 15 probably
+android update project -p . -t 1
+# produce the debug APK
+ant debug
