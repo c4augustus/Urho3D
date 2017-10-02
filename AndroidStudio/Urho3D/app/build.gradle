@@ -1,0 +1,19 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 21
+    buildToolsVersion "26.0.0"
+
+    defaultConfig {
+        applicationId "com.github.urho3d"
+        minSdkVersion 10
+        targetSdkVersion 12
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt')
+        }
+    }
+}
