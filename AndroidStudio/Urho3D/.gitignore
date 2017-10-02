@@ -1,0 +1,13 @@
+## copied from a new project generated in Android Studio 2.3.3:
+*.iml
+.gradle
+/local.properties
+/.idea/workspace.xml
+/.idea/libraries
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+
+## customized:
+app/build
