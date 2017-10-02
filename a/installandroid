@@ -1,0 +1,4 @@
+#!/bin/bash
+cd build/android
+adb devices
+adb install bin/Urho3D-debug.apk
