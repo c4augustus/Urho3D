@@ -1,0 +1,2 @@
+#!/bin/bash
+./cmake_ios.sh build/ios -DURHO3D_SAMPLES=1
