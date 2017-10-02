@@ -1,0 +1,5 @@
+#!/bin/bash
+export ANDROID_NDK=$(dirname $(which ndk-build))
+export ANDROID_SDK=$(dirname $(dirname $(which adb)))
+echo "ANDROID_NDK=$ANDROID_NDK"
+echo "ANDROID_SDK=$ANDROID_SDK"
