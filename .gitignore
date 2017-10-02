@@ -101,3 +101,6 @@ configure*
 *.bak
 Thumbs.db
 .directory
+
+# customized by c4augustus
+/build
