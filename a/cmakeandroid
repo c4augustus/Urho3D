@@ -1,0 +1,4 @@
+#!/bin/bash
+DIR_THIS=$(dirname $0)
+. $DIR_THIS/exportandroid
+./cmake_android.sh build/android -DURHO3D_SAMPLES=1
