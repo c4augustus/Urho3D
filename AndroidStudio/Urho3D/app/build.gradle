@@ -16,4 +16,12 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt')
         }
     }
+
+    sourceSets {
+        main {
+            assets.srcDirs = ['../../../Android/assets']
+            java.srcDirs = ['../../../Android/src']
+            res.srcDirs = ['../../../Android/res']
+        }
+    }
 }
