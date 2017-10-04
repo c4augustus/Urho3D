@@ -1,5 +1,6 @@
 #!/bin/bash
-cd build/android
+DIR_THIS=$(dirname $0)
+cd $DIR_THIS/../build/android
 make
 # select the first listed SDK, API 15 probably
 android update project -p . -t 1

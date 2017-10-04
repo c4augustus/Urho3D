@@ -1,4 +1,5 @@
 #!/bin/bash
-cd build/android
+DIR_THIS=$(dirname $0)
+cd $DIR_THIS/../build/android
 adb devices
 adb install bin/Urho3D-debug.apk
