@@ -22,6 +22,7 @@ android {
             assets.srcDirs = ['../../../Android/assets']
             java.srcDirs = ['../../../Android/src']
             res.srcDirs = ['../../../Android/res']
+            jniLibs.srcDirs = ['../../../build/android/libs']
         }
     }
 }
