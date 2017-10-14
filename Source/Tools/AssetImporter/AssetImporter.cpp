@@ -1008,6 +1008,9 @@ void BuildAndSaveModel(OutModel& model)
 
     SharedPtr<Model> outModel(new Model(context_));
     Vector<PODVector<unsigned> > allBoneMappings;
+    Vector<ModelMorph> morphs;
+    PODVector<unsigned> morphRangeStarts;
+    PODVector<unsigned> morphRangeCounts;
     BoundingBox box;
 
     unsigned numValidGeometries = 0;
@@ -1162,16 +1165,92 @@ void BuildAndSaveModel(OutModel& model)
         if (model.bones_.Size() > maxBones_)
             allBoneMappings.Push(boneMappings);
 
+        // Build morphs
+        for (unsigned i = 0; i < mesh->mNumAnimMeshes; ++i)
+        {
+            const aiAnimMesh & animMesh = *mesh->mAnimMeshes[i];
+            morphs.Resize(morphs.Size() + 1); // obviate copy
+            ModelMorph& morph = morphs[morphs.Size() - 1];
+            // TODO: @@@ assimp DOESN'T KEEP THE "TARGET" MESH NAME
+            String name = "morph #" + String(i);
+            morph.name_ = name;
+            morph.nameHash_ = name;
+            morph.weight_ = animMesh.mWeight;
+            VertexBufferMorph& buffer = morph.buffers_[0];
+            PODVector<VertexElement> elements;
+            elements.Push(VertexElement(TYPE_VECTOR3, SEM_POSITION));
+            if (animMesh.mNormals)
+                elements.Push(VertexElement(TYPE_VECTOR3, SEM_NORMAL));
+            if (animMesh.mTangents)
+                elements.Push(VertexElement(TYPE_VECTOR4, SEM_TANGENT));
+            buffer.elementMask_ = VertexBuffer::GetVertexElementMask(elements);
+            buffer.vertexCount_ = mesh->mNumVertices; // !!! animMesh.mNumVertices is the every-index-has-its-own-vertex count
+            size_t morphEntrySize = (sizeof(unsigned) + VertexBuffer::GetVertexSize(elements));
+            buffer.dataSize_ = buffer.vertexCount_ * morphEntrySize;
+            buffer.morphData_ = new unsigned char[buffer.dataSize_];
+            unsigned char* morphBytes = (unsigned char*)buffer.morphData_.Get();
+            for (unsigned amVertIndex = 0; amVertIndex < animMesh.mNumVertices; ++amVertIndex)
+            {
+#if 0
+                unsigned modelVertIndex = largeIndices
+                    ? *((unsigned*)indexData + amVertIndex)
+                    : (unsigned)(*((unsigned short*)indexData + amVertIndex));
+                unsigned* destUnsigned = (unsigned *)&(morphBytes[modelVertIndex * morphEntrySize]);
+                *destUnsigned++ = modelVertIndex;
+#else
+                unsigned* destUnsigned = (unsigned *)&(morphBytes[amVertIndex * morphEntrySize]);
+                *destUnsigned++ = amVertIndex;
+#endif
+                float* destFloat = (float*)destUnsigned;
+                {
+                    Vector3 vertexA = vertexTransform * ToVector3(   mesh->mVertices[amVertIndex]);
+                    Vector3 vertexB = vertexTransform * ToVector3(animMesh.mVertices[amVertIndex]);
+                    Vector3 vertex = vertexB - vertexA;
+                    *destFloat++ = vertex.x_;
+                    *destFloat++ = vertex.y_;
+                    *destFloat++ = vertex.z_;
+                }
+                if (animMesh.mNormals)
+                {
+                    Vector3 normalA = normalTransform * ToVector3(   mesh->mNormals[amVertIndex]);
+                    Vector3 normalB = normalTransform * ToVector3(animMesh.mNormals[amVertIndex]);
+                    Vector3 normal = normalB - normalA;
+                    *destFloat++ = normal.x_;
+                    *destFloat++ = normal.y_;
+                    *destFloat++ = normal.z_;
+                }
+                if (animMesh.mTangents)
+                {
+                    Vector3 tangentA = normalTransform * ToVector3(   mesh->mTangents[amVertIndex]);
+                    Vector3 tangentB = normalTransform * ToVector3(animMesh.mTangents[amVertIndex]);
+                    Vector3 tangent = tangentB - tangentA;
+                    *destFloat++ = tangent.x_;
+                    *destFloat++ = tangent.y_;
+                    *destFloat++ = tangent.z_;
+                }
+            }
+            while (morphRangeStarts.Size() <= i)
+            {
+                morphRangeStarts.Push(0);
+                morphRangeCounts.Push(0);
+            }
+            morphRangeStarts[i] = 0; // !!! assimp only supports morphs that match mesh vertex count
+            morphRangeCounts[i] = buffer.vertexCount_;
+            PrintLine("Writing morph " + name +
+                      " with " + String(buffer.vertexCount_) +
+                      " vertices, weight " + String(animMesh.mWeight));
+        }
+
         startVertexOffset += mesh->mNumVertices;
         startIndexOffset += validFaces * 3;
         ++destGeomIndex;
     }
 
     // Define the model buffers and bounding box
-    PODVector<unsigned> emptyMorphRange;
-    outModel->SetVertexBuffers(vbVector, emptyMorphRange, emptyMorphRange);
+    outModel->SetVertexBuffers(vbVector, morphRangeStarts, morphRangeCounts);
     outModel->SetIndexBuffers(ibVector);
     outModel->SetBoundingBox(box);
+    outModel->SetMorphs(morphs);
 
     // Build skeleton if necessary
     if (model.bones_.Size() && model.rootBone_)
@@ -2525,6 +2604,7 @@ PODVector<VertexElement> GetVertexElements(aiMesh* mesh, bool isSkinned)
 
     return ret;
 }
+
 
 aiNode* GetNode(const String& name, aiNode* rootNode, bool caseSensitive)
 {
