@@ -110,14 +110,9 @@ void VertexBuffer::UpdateOffsets()
         elementOffset += ELEMENT_TYPESIZES[i->type_];
         elementHash_ <<= 6;
         elementHash_ += (((int)i->type_ + 1) * ((int)i->semantic_ + 1) + i->index_);
-
-        for (unsigned j = 0; j < MAX_LEGACY_VERTEX_ELEMENTS; ++j)
-        {
-            const VertexElement& legacy = LEGACY_VERTEXELEMENTS[j];
-            if (i->type_ == legacy.type_ && i->semantic_ == legacy.semantic_ && i->index_ == legacy.index_)
-                elementMask_ |= (1 << j);
-        }
     }
+
+    elementMask_ = GetVertexElementMask(elements_);
 
     vertexSize_ = elementOffset;
 }
@@ -177,6 +172,21 @@ PODVector<VertexElement> VertexBuffer::GetElements(unsigned elementMask)
     }
 
     return ret;
+}
+
+unsigned VertexBuffer::GetVertexElementMask(const PODVector<VertexElement>& elements)
+{
+    unsigned elementMask = 0;
+    for (PODVector<VertexElement>::ConstIterator i = elements.Begin(); i != elements.End(); ++i)
+    {
+        for (unsigned j = 0; j < MAX_LEGACY_VERTEX_ELEMENTS; ++j)
+        {
+            const VertexElement& legacy = LEGACY_VERTEXELEMENTS[j];
+            if (i->type_ == legacy.type_ && i->semantic_ == legacy.semantic_ && i->index_ == legacy.index_)
+                elementMask |= (1 << j);
+        }
+    }
+    return elementMask;
 }
 
 unsigned VertexBuffer::GetVertexSize(const PODVector<VertexElement>& elements)

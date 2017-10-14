@@ -123,6 +123,9 @@ public:
     /// Return a vertex element list from a legacy element bitmask.
     static PODVector<VertexElement> GetElements(unsigned elementMask);
 
+    /// Retrun the legacy bitmask of vertex elements.
+    static unsigned GetVertexElementMask(const PODVector<VertexElement>& elements);
+
     /// Return vertex size from an element list.
     static unsigned GetVertexSize(const PODVector<VertexElement>& elements);
 
