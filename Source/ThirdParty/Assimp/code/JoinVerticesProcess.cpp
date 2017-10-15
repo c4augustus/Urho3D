@@ -129,6 +129,14 @@ int JoinVerticesProcess::ProcessMesh( aiMesh* pMesh, unsigned int meshIndex)
     std::vector<Vertex> uniqueVertices;
     uniqueVertices.reserve( pMesh->mNumVertices);
 
+    // TODO: ### BYPASS FOR NOW JUST TO SEE IF THIS IS THE PROBLEM
+    return;
+#if 0
+    std::vector<std::vector<Vertex>*> uniqueVerticesPerAnimMesh;
+    for( unsigned int a = 0; a < pMesh->mNumAnimMeshes; a++) {
+        uniqueVertices.reserve( pMesh->mNumVertices);
+    }
+#endif
     // For each vertex the index of the vertex it was replaced by.
     // Since the maximal number of vertices is 2^31-1, the most significand bit can be used to mark
     //  whether a new vertex was created for the index (true) or if it was replaced by an existing
