@@ -150,6 +150,25 @@ void MakeLeftHandedProcess::ProcessMesh( aiMesh* pMesh)
         }
     }
 
+    // also for anim meshes: mirror positions, normals and stuff along the Z axis
+    for (size_t a = 0; a < pMesh->mNumAnimMeshes; ++a)
+    {
+        aiAnimMesh* pAnimMesh = pMesh->mAnimMeshes[a];
+        if( pAnimMesh)
+            for( size_t b = 0; b < pAnimMesh->mNumVertices; ++b)
+            {
+                pAnimMesh->mVertices[b].z *= -1.0f;
+                if( pAnimMesh->HasNormals()) {
+                    pAnimMesh->mNormals[b].z *= -1.0f;
+                }
+                if( pAnimMesh->HasTangentsAndBitangents())
+                {
+                    pAnimMesh->mTangents[b].z *= -1.0f;
+                    pAnimMesh->mBitangents[b].z *= -1.0f;
+                }
+            }
+    }
+
     // mirror offset matrices of all bones
     for( size_t a = 0; a < pMesh->mNumBones; ++a)
     {
@@ -282,6 +301,7 @@ void FlipUVsProcess::ProcessMesh( aiMesh* pMesh)
         for( unsigned int b = 0; b < pMesh->mNumVertices; b++ ) {
             pMesh->mTextureCoords[ a ][ b ].y = 1.0f - pMesh->mTextureCoords[ a ][ b ].y;
         }
+        // TODO: ###### DO THE SAME FOR AnimMeshes
     }
 }
 
