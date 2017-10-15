@@ -201,6 +201,9 @@ namespace Assimp
         /** Extracts a single object from an input channel and stores it in the appropriate mesh data array */
         void ExtractDataObjectFromChannel( const Collada::InputChannel& pInput, size_t pLocalIndex, Collada::Mesh* pMesh);
 
+        /** Extracts all data from an input channel and stores it in the appropriate mesh data array */
+        void ExtractAllDataFromChannel( const Collada::InputChannel& pInput, Collada::Mesh* pMesh);
+
         /** Reads the library of node hierarchies and scene parts */
         void ReadSceneLibrary();
 

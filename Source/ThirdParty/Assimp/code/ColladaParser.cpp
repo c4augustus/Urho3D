@@ -2404,6 +2404,12 @@ size_t ColladaParser::ReadPrimitives( Mesh* pMesh, std::vector<InputChannel>& pP
     pMesh->mFaceSize.reserve( numPrimitives);
     pMesh->mFacePosIndices.reserve( indices.size() / numOffsets);
 
+    // TODO: ### NEW APPROACH THAT DOES *NOT* PRODUCE REDUNDANT VERTICES/NORMALS/ETC AS THE CODE BELOW
+    for (std::vector<InputChannel>::iterator it = pMesh->mPerVertexData.begin(); it != pMesh->mPerVertexData.end(); ++it)
+        ExtractAllDataFromChannel(*it, pMesh);
+    for (std::vector<InputChannel>::iterator it = pPerIndexChannels.begin(); it != pPerIndexChannels.end(); ++it)
+        ExtractAllDataFromChannel(*it, pMesh);
+
     size_t polylistStartVertex = 0;
     for (size_t currentPrimitive = 0; currentPrimitive < numPrimitives; currentPrimitive++)
     {
@@ -2413,29 +2419,39 @@ size_t ColladaParser::ReadPrimitives( Mesh* pMesh, std::vector<InputChannel>& pP
         {
             case Prim_Lines:
                 numPoints = 2;
+#if 0 // TODO: ### PRE VERTEX REPLACED BY NEW CODE ABOVE THAT CALLS ExtractAllDataFromChannel(...)
                 for (size_t currentVertex = 0; currentVertex < numPoints; currentVertex++)
                     CopyVertex(currentVertex, numOffsets, numPoints, perVertexOffset, pMesh, pPerIndexChannels, currentPrimitive, indices);
+#endif
                 break;
             case Prim_Triangles:
                 numPoints = 3;
+#if 0 // TODO: ### PRE VERTEX REPLACED BY NEW CODE ABOVE THAT CALLS ExtractAllDataFromChannel(...)
                 for (size_t currentVertex = 0; currentVertex < numPoints; currentVertex++)
                     CopyVertex(currentVertex, numOffsets, numPoints, perVertexOffset, pMesh, pPerIndexChannels, currentPrimitive, indices);
+#endif
                 break;
             case Prim_TriStrips:
                 numPoints = 3;
+#if 0 // TODO: ### PRE VERTEX REPLACED BY NEW CODE ABOVE THAT CALLS ExtractAllDataFromChannel(...)
                 ReadPrimTriStrips(numOffsets, perVertexOffset, pMesh, pPerIndexChannels, currentPrimitive, indices);
+#endif
                 break;
             case Prim_Polylist:
                 numPoints = pVCount[currentPrimitive];
+#if 0 // TODO: ### PRE VERTEX REPLACED BY NEW CODE ABOVE THAT CALLS ExtractAllDataFromChannel(...)
                 for (size_t currentVertex = 0; currentVertex < numPoints; currentVertex++)
                     CopyVertex(polylistStartVertex + currentVertex, numOffsets, 1, perVertexOffset, pMesh, pPerIndexChannels, 0, indices);
+#endif
                 polylistStartVertex += numPoints;
                 break;
             case Prim_TriFans:
             case Prim_Polygon:
                 numPoints = indices.size() / numOffsets;
+#if 0 // TODO: ### PRE VERTEX REPLACED BY NEW CODE ABOVE THAT CALLS ExtractAllDataFromChannel(...)
                 for (size_t currentVertex = 0; currentVertex < numPoints; currentVertex++)
                     CopyVertex(currentVertex, numOffsets, numPoints, perVertexOffset, pMesh, pPerIndexChannels, currentPrimitive, indices);
+#endif
                 break;
             default:
                 // LineStrip is not supported due to expected index unmangling
@@ -2445,6 +2461,13 @@ size_t ColladaParser::ReadPrimitives( Mesh* pMesh, std::vector<InputChannel>& pP
 
         // store the face size to later reconstruct the face from
         pMesh->mFaceSize.push_back( numPoints);
+
+        // TODO: ### NEW CODE BASED ON LOGIC FROM HERE AND CopyVertex(...)
+        for (size_t currentVertex = 0; currentVertex < numPoints; currentVertex++)
+        {
+            size_t baseOffset = currentPrimitive * numOffsets * numPoints + currentVertex * numOffsets;
+            pMesh->mFacePosIndices.push_back(indices[baseOffset + perVertexOffset]);
+        }
     }
 
     // if I ever get my hands on that guy who invented this steaming pile of indirection...
@@ -2588,6 +2611,123 @@ void ColladaParser::ExtractDataObjectFromChannel( const InputChannel& pInput, si
                 DefaultLogger::get()->error("Collada: too many vertex color sets. Skipping.");
             }
 
+            break;
+        default:
+            // IT_Invalid and IT_Vertex
+            ai_assert(false && "shouldn't ever get here");
+    }
+}
+
+// ------------------------------------------------------------------------------------------------
+// Extracts all data from an input channel and stores it in the appropriate mesh data array
+void ColladaParser::ExtractAllDataFromChannel( const InputChannel& pInput, Mesh* pMesh)
+{
+    // ignore vertex referrer - we handle them that separate
+    if( pInput.mType == IT_Vertex)
+        return;
+
+    const Accessor& acc = *pInput.mResolved;
+
+    // now we reinterpret it according to the type we're reading here
+    switch( pInput.mType)
+    {
+        case IT_Position:
+            if( pInput.mIndex == 0)
+            {
+                size_t dataIndex = acc.mOffset;
+                for (size_t i = 0; i < acc.mCount; ++i) 
+                {
+                    pMesh->mPositions.push_back( aiVector3D(
+                        acc.mData->mValues[dataIndex],
+                        acc.mData->mValues[dataIndex+1],
+                        acc.mData->mValues[dataIndex+2]));
+                    dataIndex += acc.mStride;
+                }
+            } else
+                DefaultLogger::get()->error("Collada: just one vertex position stream supported");
+            break;
+        case IT_Normal:
+            if( pInput.mIndex == 0)
+            {
+                size_t dataIndex = acc.mOffset;
+                for (size_t i = 0; i < acc.mCount; ++i) 
+                {
+                    pMesh->mNormals.push_back( aiVector3D(
+                        acc.mData->mValues[dataIndex],
+                        acc.mData->mValues[dataIndex+1],
+                        acc.mData->mValues[dataIndex+2]));
+                    dataIndex += acc.mStride;
+                }
+            } else
+                DefaultLogger::get()->error("Collada: just one vertex normal stream supported");
+            break;
+        case IT_Tangent:
+#if 0 // ###### FINISH THIS WHEN NEEDED
+            // pad to current vertex count if necessary
+            if( pMesh->mTangents.size() < pMesh->mPositions.size()-1)
+                pMesh->mTangents.insert( pMesh->mTangents.end(), pMesh->mPositions.size() - pMesh->mTangents.size() - 1, aiVector3D( 1, 0, 0));
+
+            // ignore all tangent streams except 0 - there can be only one tangent
+            if( pInput.mIndex == 0)
+                pMesh->mTangents.push_back( aiVector3D( obj[0], obj[1], obj[2]));
+            else
+                DefaultLogger::get()->error("Collada: just one vertex tangent stream supported");
+#endif
+            break;
+        case IT_Bitangent:
+#if 0 // ###### FINISH THIS WHEN NEEDED
+            // pad to current vertex count if necessary
+            if( pMesh->mBitangents.size() < pMesh->mPositions.size()-1)
+                pMesh->mBitangents.insert( pMesh->mBitangents.end(), pMesh->mPositions.size() - pMesh->mBitangents.size() - 1, aiVector3D( 0, 0, 1));
+
+            // ignore all bitangent streams except 0 - there can be only one bitangent
+            if( pInput.mIndex == 0)
+                pMesh->mBitangents.push_back( aiVector3D( obj[0], obj[1], obj[2]));
+            else
+                DefaultLogger::get()->error("Collada: just one vertex bitangent stream supported");
+#endif
+            break;
+        case IT_Texcoord:
+            // up to 4 texture coord sets are fine, ignore the others
+            if( pInput.mIndex < AI_MAX_NUMBER_OF_TEXTURECOORDS)
+            {
+                size_t dataIndex = acc.mOffset;
+                for (size_t i = 0; i < acc.mCount; ++i) 
+                {
+                    pMesh->mTexCoords[pInput.mIndex].push_back( aiVector3D(
+                        acc.mData->mValues[dataIndex + acc.mSubOffset[0]],
+                        acc.mData->mValues[dataIndex + acc.mSubOffset[1]],
+                        acc.mData->mValues[dataIndex + acc.mSubOffset[2]]));
+                    dataIndex += acc.mStride;
+                }
+                if (0 != acc.mSubOffset[2] || 0 != acc.mSubOffset[3]) /* hack ... consider cleaner solution */
+                    pMesh->mNumUVComponents[pInput.mIndex]=3;
+            } else
+            {
+                DefaultLogger::get()->error("Collada: too many texture coordinate sets. Skipping.");
+            }
+            break;
+        case IT_Color:
+            // up to 4 color sets are fine, ignore the others
+            if( pInput.mIndex < AI_MAX_NUMBER_OF_COLOR_SETS)
+            {
+                size_t dataIndex = acc.mOffset;
+                for (size_t i = 0; i < acc.mCount; ++i) 
+                {
+                    aiColor4D result(0, 0, 0, 1);
+                    for (size_t i = 0; i < pInput.mResolved->mSize; ++i)
+                    {
+                        result[static_cast<unsigned int>(i)] =
+                            acc.mData->mValues[dataIndex + pInput.mResolved->mSubOffset[i]];
+                    }
+                    pMesh->mColors[pInput.mIndex].push_back(result);
+                    dataIndex += acc.mStride;
+                }
+
+            } else
+            {
+                DefaultLogger::get()->error("Collada: too many vertex color sets. Skipping.");
+            }
             break;
         default:
             // IT_Invalid and IT_Vertex
