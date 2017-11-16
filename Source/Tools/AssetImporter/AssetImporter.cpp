@@ -1774,7 +1774,19 @@ void BuildAndSaveScene(OutScene& scene, bool asPrefab)
     {
         const OutModel& model = scene.models_[scene.nodeModelIndices_[i]];
         Node* modelNode = CreateSceneNode(outScene, scene.nodes_[i], nodeMapping);
-        StaticModel* staticModel = model.bones_.Empty() ? modelNode->CreateComponent<StaticModel>() : modelNode->CreateComponent<AnimatedModel>();
+        bool animated = !model.bones_.Empty();
+        if (!animated)
+            for (unsigned i = 0; i < model.meshes_.Size(); ++i)
+            {
+                if (model.meshes_[i]->mNumAnimMeshes > 0)
+                {
+                    animated = true;
+                    break;
+                }
+            }
+        StaticModel* staticModel = animated
+                ? modelNode->CreateComponent<AnimatedModel>()
+                : modelNode->CreateComponent<StaticModel>();
 
         // Create a dummy model so that the reference can be stored
         String modelName = (useSubdirs_ ? "Models/" : "") + GetFileNameAndExtension(model.outName_);
