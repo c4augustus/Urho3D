@@ -67,6 +67,8 @@ public class SDLActivity extends Activity {
     // Urho3D: Hash of activity object that owns state, kept around in order to prevent dying activity overwriting state it no longer owns.
     private static int mStateOwner = 0;
 
+    protected static SDLSurfaceAlternative mSDLSurfaceAlternative;
+
     protected boolean onLoadLibrary(ArrayList<String> libraryNames) {
         for (final String name : libraryNames) {
             System.loadLibrary(name);
@@ -177,7 +179,9 @@ public class SDLActivity extends Activity {
         }
 
         // Set up the surface
-        mSurface = new SDLSurface(getApplication());
+        mSurface = // !!! augmentation [2017.10.25 c4augustus]
+            (mSDLSurfaceAlternative != null)
+            ? null : new SDLSurface(getApplication());
 
         if(Build.VERSION.SDK_INT >= 12) {
             mJoystickHandler = new SDLJoystickHandler_API12();
@@ -187,7 +191,9 @@ public class SDLActivity extends Activity {
         }
 
         mLayout = new RelativeLayout(this);
-        mLayout.addView(mSurface);
+        mLayout.addView( // !!! augmentation [2017.10.25 c4augustus]
+            (mSDLSurfaceAlternative != null)
+            ? mSDLSurfaceAlternative : mSurface);
 
         setContentView(mLayout);
 
@@ -320,7 +326,12 @@ public class SDLActivity extends Activity {
         if (!SDLActivity.mIsPaused && SDLActivity.mIsSurfaceReady) {
             SDLActivity.mIsPaused = true;
             SDLActivity.nativePause();
-            mSurface.handlePause();
+            // !!! augmentation [2017.10.25 c4augustus]
+            if (mSDLSurfaceAlternative != null) {
+                mSDLSurfaceAlternative.handlePause();
+            } else {
+                mSurface.handlePause();
+            }
         }
     }
 
@@ -332,7 +343,12 @@ public class SDLActivity extends Activity {
         if (SDLActivity.mIsPaused && SDLActivity.mIsSurfaceReady && SDLActivity.mHasFocus) {
             SDLActivity.mIsPaused = false;
             SDLActivity.nativeResume();
-            mSurface.handleResume();
+            // !!! augmentation [2017.10.25 c4augustus]
+            if (mSDLSurfaceAlternative != null) {
+                mSDLSurfaceAlternative.handleResume();
+            } else {
+                mSurface.handleResume();
+            }
         }
     }
 
@@ -559,7 +575,10 @@ public class SDLActivity extends Activity {
      * This method is called by SDL using JNI.
      */
     public static Surface getNativeSurface() {
-        return SDLActivity.mSurface.getNativeSurface();
+        // !!! augmentation [2017.10.25 c4augustus]
+        return (mSDLSurfaceAlternative != null)
+                ? SDLActivity.mSDLSurfaceAlternative.getNativeSurface()
+                : SDLActivity.mSurface.getNativeSurface();
     }
 
     // Audio
