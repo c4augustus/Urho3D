@@ -13,8 +13,9 @@ import android.content.pm.ActivityInfo;
     SDLSurfaceReplacement
 */
 public class SDLSurfaceReplacement extends SDLSurfaceAlternative
-    implements SurfaceHolder.Callback, View.OnKeyListener,
-    View.OnTouchListener, SensorEventListener {
+    implements SurfaceHolder.Callback,
+    TextureView.SurfaceTextureListener, // !!! augmentation [2017.10.28 c4augustus]
+    View.OnKeyListener, View.OnTouchListener, SensorEventListener {
 
     // Sensors
     protected static SensorManager mSensorManager;
@@ -23,11 +24,78 @@ public class SDLSurfaceReplacement extends SDLSurfaceAlternative
     // Keep track of the surface size to normalize touch events
     protected static float mWidth, mHeight;
 
-    // Startup
-    public SDLSurfaceReplacement(Context context) {
-        super(context);
-        getHolder().addCallback(this);
+    // !!! augmentation [2017.10.28 c4augustus]
+    private Surface mSurface;
 
+    // !!! augmentation [2017.10.28 c4augustus]
+    // BEGIN copied from Android API 22 SurfaceView
+    /* Set SurfaceView's format to 565 by default to maintain backward
+     * compatibility with applications assuming this format.
+     */
+    int mFormat = PixelFormat.RGB_565;
+    boolean mHaveFrame = false;
+    private final ViewTreeObserver.OnPreDrawListener mDrawListener =
+            new ViewTreeObserver.OnPreDrawListener() {
+                @Override
+                public boolean onPreDraw() {
+                    // reposition ourselves where the surface is
+                    mHaveFrame = getWidth() > 0 && getHeight() > 0;
+                    // !!! TODO: ORIGINAL CODE FROM SurfaceView
+                    //updateWindow(false, false);
+                    if (mHaveFrame) {
+                        surfaceChanged(null, mFormat, getWidth(), getHeight());
+                    }
+                    return true;
+                }
+            };
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+    /*
+        mParent.requestTransparentRegion(this);
+        mSession = getWindowSession();
+        mLayout.token = getWindowToken();
+        mLayout.setTitle("SurfaceView");
+        mViewVisibility = getVisibility() == VISIBLE;
+
+        if (!mGlobalListenersAdded) {
+            ViewTreeObserver observer = getViewTreeObserver();
+            observer.addOnScrollChangedListener(mScrollChangedListener);
+            observer.addOnPreDrawListener(mDrawListener);
+            mGlobalListenersAdded = true;
+        }
+    */
+    }
+    // END copied from Android API 22 SurfaceView
+
+    public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+        surfaceChanged(null, mFormat, width, height);
+    }
+
+    public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+        surfaceChanged(null, mFormat, width, height);
+    }
+
+    public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+        Log.v("SDL", "surfaceDestroyed()");
+        // Call this *before* setting mIsSurfaceReady to 'false'
+        SDLActivity.handlePause();
+        SDLActivity.mIsSurfaceReady = false;
+        SDLActivity.onNativeSurfaceDestroyed();
+        return true;
+    }
+
+    public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+    }
+
+    // Startup
+    public SDLSurfaceReplacement(Context context, Surface surface) {
+        super(context);
+        /* !!! ORIGINAL CODE FROM SDLSurface
+        getHolder().addCallback(this);
+        */
+        setSurfaceTextureListener(this); // !!! augmentation [2017.10.28 c4augustus]
+        //mSurface = surface; // !!! augmentation [2017.10.28 c4augustus]
         setFocusable(true);
         setFocusableInTouchMode(true);
         requestFocus();
@@ -60,7 +128,14 @@ public class SDLSurfaceReplacement extends SDLSurfaceAlternative
     }
 
     public Surface getNativeSurface() {
+        /* !!! ORIGINAL CODE FROM SDLSurface
         return getHolder().getSurface();
+        */
+        // !!! augmentation [2017.10.28 c4augustus]
+        if (mSurface == null) {
+            mSurface = new Surface(this.getSurfaceTexture());
+        }
+        return mSurface;
     }
 
     // Called when we have a valid drawing surface
