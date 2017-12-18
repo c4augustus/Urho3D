@@ -1,5 +1,5 @@
 #!/bin/bash
 DIR_THIS=$(dirname $0)
 cd $DIR_THIS/..
-$DIR_THIS/exportandroid
-./cmake_android.sh build/android -DURHO3D_SAMPLES=1
+. $DIR_THIS/exportandroid
+./cmake_android.sh build/android -DANDROID_NATIVE_API_LEVEL=android-21 -DURHO3D_GLES3=1 -DURHO3D_SAMPLES=1
