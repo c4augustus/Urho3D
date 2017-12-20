@@ -25,6 +25,8 @@ public class SDLSurfaceReplacement extends SDLSurfaceAlternative
     protected static float mWidth, mHeight;
 
     // !!! augmentation [2017.10.28 c4augustus]
+    private int mFixedContentWidth;
+    private int mFixedContentHeight;
     private Surface mSurface;
 
     // !!! augmentation [2017.10.28 c4augustus]
@@ -89,13 +91,17 @@ public class SDLSurfaceReplacement extends SDLSurfaceAlternative
     }
 
     // Startup
-    public SDLSurfaceReplacement(Context context, Surface surface) {
+    public SDLSurfaceReplacement(
+            Context context,
+            int fixedContentWidth,
+            int fixedContentHeight) {
         super(context);
+        mFixedContentWidth = fixedContentWidth;
+        mFixedContentHeight = fixedContentHeight;
         /* !!! ORIGINAL CODE FROM SDLSurface
         getHolder().addCallback(this);
         */
         setSurfaceTextureListener(this); // !!! augmentation [2017.10.28 c4augustus]
-        //mSurface = surface; // !!! augmentation [2017.10.28 c4augustus]
         setFocusable(true);
         setFocusableInTouchMode(true);
         requestFocus();
@@ -159,6 +165,18 @@ public class SDLSurfaceReplacement extends SDLSurfaceAlternative
     @Override
     public void surfaceChanged(SurfaceHolder holder,
                                int format, int width, int height) {
+        if (mFixedContentWidth > 0 && mFixedContentHeight > 0
+                && (width != mFixedContentWidth
+                        || height != mFixedContentHeight)) {
+            Matrix matrix = new Matrix();
+            matrix.setTranslate(0, mFixedContentHeight - height);
+            matrix.postScale(
+                    (float)width / (float)mFixedContentWidth,
+                    (float)height / (float)mFixedContentHeight);
+            setTransform(matrix);
+            width = mFixedContentWidth;
+            height = mFixedContentHeight;
+        }
         Log.v("SDL", "surfaceChanged()");
 
         int sdlFormat = 0x15151002; // SDL_PIXELFORMAT_RGB565 by default
