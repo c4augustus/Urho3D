@@ -111,7 +111,10 @@ elseif (XCODE)
 endif ()
 
 include (CheckHost)
+## customization necessary to work inside AndroidStudio [2018.01.06 c4augustus]
+if (NOT URHO3D_BYPASS_CHECK_COMPILER_TOOLCHAIN)
 include (CheckCompilerToolchain)
+endif ()
 
 # Extra linker flags for linking against indirect dependencies (linking shared lib with dependencies)
 if (RPI)
