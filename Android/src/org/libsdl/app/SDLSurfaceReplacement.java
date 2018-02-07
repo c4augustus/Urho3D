@@ -28,6 +28,7 @@ public class SDLSurfaceReplacement extends SDLSurfaceAlternative
     private int mFixedContentWidth;
     private int mFixedContentHeight;
     private Surface mSurface;
+    private boolean mUsingSensor = false;
 
     // !!! augmentation [2017.10.28 c4augustus]
     // BEGIN copied from Android API 22 SurfaceView
@@ -130,7 +131,7 @@ public class SDLSurfaceReplacement extends SDLSurfaceAlternative
         requestFocus();
         setOnKeyListener(this);
         setOnTouchListener(this);
-        enableSensor(Sensor.TYPE_ACCELEROMETER, true);
+        enableSensor(Sensor.TYPE_ACCELEROMETER, mUsingSensor);
     }
 
     public Surface getNativeSurface() {
@@ -275,7 +276,7 @@ public class SDLSurfaceReplacement extends SDLSurfaceAlternative
             // Start up the C app thread and enable sensor input for the first time
 
             final Thread sdlThread = new Thread(new SDLMain(), "SDLThread");
-            enableSensor(Sensor.TYPE_ACCELEROMETER, true);
+            enableSensor(Sensor.TYPE_ACCELEROMETER, mUsingSensor);
             sdlThread.start();
 
             // Set up a listener thread to catch when the native thread ends
