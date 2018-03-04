@@ -125,8 +125,27 @@ bool ShaderVariation::Create()
         }
     }
     // Force GLSL version 150 if no version define and GL3 is being used
-    if (!verEnd && Graphics::GetGL3Support())
-        shaderCode += "#version 150\n";
+    if (!verEnd) {
+//#ifdef GL_ES_VERSION_3_0
+// TODO: ### ASSUMING GLES3 UNTIL WE UPGRADE SDL FOR GLES3 HEADERS
+#ifdef GL_ES_VERSION_2_0
+        shaderCode += "#version 300 es\n";
+        if (type_ == VS) {
+            shaderCode += "#define attribute in\n";
+            shaderCode += "#define varying out\n";
+        } else {
+            shaderCode += "#define varying in\n";
+            shaderCode += "#define texture2D texture\n";
+            shaderCode += "#define gl_FragColor o_frag_color\n";
+            shaderCode += "precision mediump float;\n";
+            shaderCode += "out vec4 o_frag_color;\n";
+        }
+#else
+        if (Graphics::GetGL3Support()) {
+            shaderCode += "#version 150\n";
+        }
+#endif
+    }
 
     // Distinguish between VS and PS compile in case the shader code wants to include/omit different things
     shaderCode += type_ == VS ? "#define COMPILEVS\n" : "#define COMPILEPS\n";

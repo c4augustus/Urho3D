@@ -262,8 +262,10 @@ Graphics::Graphics(Context* context_) :
     orientations_("LandscapeLeft LandscapeRight"),
 #ifndef GL_ES_VERSION_2_0
     apiName_("GL2")
-#else
+#elif !defined(GL_ES_VERSION_3_0)
     apiName_("GLES2")
+#else
+    apiName_("GLES3")
 #endif
 {
     SetTextureUnitMappings();
@@ -409,8 +411,11 @@ bool Graphics::SetMode(int width, int height, bool fullscreen, bool borderless, 
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, 0);
         }
-#else
+#elif !defined(GL_ES_VERSION_3_0)
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+#else
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 #endif
 
@@ -2108,7 +2113,7 @@ PODVector<int> Graphics::GetMultiSampleLevels() const
     for (int i = 2; i <= maxSamples && i <= 16; i *= 2)
         ret.Push(i);
 #endif
-    
+
     return ret;
 }
 
