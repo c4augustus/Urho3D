@@ -50,11 +50,15 @@
         // so for now, sample without explicit LOD, and from the environment sampler, where the zone texture will be put
         // on mobile hardware
         #ifndef GL_ES
-            vec3 cube = textureLod(sZoneCubeMap, FixCubeLookup(reflectVec), mipSelect).rgb;
-            vec3 cubeD = textureLod(sZoneCubeMap, FixCubeLookup(wsNormal), 9.0).rgb;
+            //vec3 cube = textureLod(sZoneCubeMap, FixCubeLookup(reflectVec), mipSelect).rgb;
+            //vec3 cubeD = textureLod(sZoneCubeMap, FixCubeLookup(wsNormal), 9.0).rgb;
+            vec3 cube = textureLod(sZoneCubeMap, reflectVec, mipSelect).rgb;
+            vec3 cubeD = textureLod(sZoneCubeMap, wsNormal, 9.0).rgb;
         #else
-            vec3 cube = textureCube(sEnvCubeMap, FixCubeLookup(reflectVec)).rgb;
-            vec3 cubeD = textureCube(sEnvCubeMap, FixCubeLookup(wsNormal)).rgb;
+            //vec3 cube = textureCube(sEnvCubeMap, FixCubeLookup(reflectVec)).rgb;
+            //vec3 cubeD = textureCube(sEnvCubeMap, FixCubeLookup(wsNormal)).rgb;
+            vec3 cube = textureLod(sEnvCubeMap, reflectVec, mipSelect).rgb;
+            vec3 cubeD = textureLod(sEnvCubeMap, wsNormal, 9.0).rgb;
         #endif
 
         // Fake the HDR texture
